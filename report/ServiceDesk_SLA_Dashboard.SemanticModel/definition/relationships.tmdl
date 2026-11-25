@@ -1,0 +1,16 @@
+relationship AutoDetected_aa6a5830-f386-4391-b055-f46ee6cf053a
+	fromColumn: Incidents.resolver_id
+	toColumn: Resolvers.resolver_id
+
+relationship AutoDetected_d67e12f4-e592-4f11-9023-f0be0a51b435
+	fromColumn: Incidents.priority
+	toColumn: SLA_Targets.priority
+
+relationship 13b7c980-2538-ac34-fb31-a42fb5c06cc9
+	fromColumn: Incidents.'Opened Date'
+	toColumn: Date.Date
+
+relationship AutoDetected_396f5532-3856-4ab0-a13e-d90393aa59c5
+	fromColumn: Group_Handoffs.number
+	toColumn: Incidents.number
+

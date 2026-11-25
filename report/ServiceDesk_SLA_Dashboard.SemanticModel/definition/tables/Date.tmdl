@@ -1,0 +1,65 @@
+table Date
+	lineageTag: f5094e9f-3477-411e-b643-6489c876c43a
+	dataCategory: Time
+
+	column Date
+		isKey
+		formatString: Short Date
+		lineageTag: 378a446e-eddc-48c0-a010-e8480205f5ea
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Year
+		formatString: 0
+		lineageTag: 86360c58-84f7-403e-83b8-e72006ce38fd
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Number'
+		formatString: 0
+		lineageTag: 19afe05a-894b-4da9-a98f-a28bad04d093
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month Number]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		lineageTag: e8ec9a6c-868d-4fa1-9fbb-6a20c6f680c3
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+		sortByColumn: 'Month Number'
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year-Month
+		lineageTag: af11d27e-37c9-42be-9a94-a7b890e44114
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year-Month]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Date = calculated
+		mode: import
+		source =
+				
+				ADDCOLUMNS (
+				    CALENDAR ( DATE ( 2016, 1, 1 ), DATE ( 2017, 12, 31 ) ),   // fixed range: covers every ticket (Feb 2016 – Feb 2017)
+				    "Year",         YEAR ( [Date] ),
+				    "Month Number", MONTH ( [Date] ),
+				    "Month",        FORMAT ( [Date], "MMM" ),
+				    "Year-Month",   FORMAT ( [Date], "YYYY-MM" )
+				)
+
+	annotation PBI_Id = bb4a010850374e3794dcd3a6e011a6e5
+

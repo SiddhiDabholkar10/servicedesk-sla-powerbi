@@ -1,0 +1,53 @@
+expression Raw_Events =
+		let
+		    // Load the CSV. Same folder as Resolvers.csv; check the file name matches yours.
+		    Source = Csv.Document(File.Contents("C:\Users\dabho\Downloads\incident+management+process+enriched+event+log\incident_event_log.csv"),[Delimiter=",", Columns=36, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+		
+		    // Row 1 → column names
+		    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+		
+		    // "?" → null in every column. Table.ColumnNames(...) = the list of all 36 column names.
+		    #"Replaced Value" = Table.ReplaceValue(#"Promoted Headers", "?", null, Replacer.ReplaceValue, Table.ColumnNames(#"Promoted Headers")),
+		
+		    // Numbers and TRUE/FALSE columns. Everything not listed stays text.
+		    #"Changed Type" = Table.TransformColumnTypes(#"Replaced Value", {
+		        {"reassignment_count", Int64.Type}, {"reopen_count", Int64.Type}, {"sys_mod_count", Int64.Type},
+		        {"active", type logical}, {"made_sla", type logical},
+		        {"knowledge", type logical}, {"u_priority_confirmation", type logical}}),
+		
+		    // Dates are day/month/year, so read them with the UK locale ("en-GB"). The third input is the locale.
+		    #"Changed Type with Locale" = Table.TransformColumnTypes(#"Changed Type", {
+		        {"opened_at", type datetime}, {"sys_created_at", type datetime}, {"sys_updated_at", type datetime},
+		        {"resolved_at", type datetime}, {"closed_at", type datetime}}, "en-GB")
+		in
+		    #"Changed Type with Locale"
+	lineageTag: 3db6a067-2c78-4130-9b58-d74f07f85669
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
+expression First_Response =
+		let
+		    Source = Raw_Events,
+		
+		    // WHERE incident_state NOT IN ('New', '-100'): keep only updates after the ticket left "New"
+		    Responded = Table.SelectRows(
+		        Source,
+		        each [incident_state] <> "New" and [incident_state] <> "-100"
+		    ),
+		
+		    // GROUP BY number, MIN(sys_updated_at): the earliest of those updates = first response
+		    FirstResponse = Table.Group(
+		        Responded,
+		        {"number"},
+		        {{"RespondedDate", each List.Min([sys_updated_at]), type nullable datetime}}
+		    )
+		in
+		    FirstResponse
+	lineageTag: 693b2b3b-d8b7-41cb-a835-83f4acf14d20
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

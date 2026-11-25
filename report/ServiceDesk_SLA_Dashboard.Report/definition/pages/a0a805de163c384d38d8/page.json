@@ -1,0 +1,20 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.0.0/schema.json",
+  "name": "a0a805de163c384d38d8",
+  "displayName": "Escalation",
+  "displayOption": "FitToPage",
+  "height": 900,
+  "width": 1300,
+  "visualInteractions": [
+    {
+      "source": "6126d23ba98892002740",
+      "target": "1db557ee12278c646256",
+      "type": "NoFilter"
+    },
+    {
+      "source": "6126d23ba98892002740",
+      "target": "eea52ba64eb7abe08a88",
+      "type": "NoFilter"
+    }
+  ]
+}

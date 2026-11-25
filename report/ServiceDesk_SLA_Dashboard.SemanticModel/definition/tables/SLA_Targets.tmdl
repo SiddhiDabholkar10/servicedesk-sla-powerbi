@@ -1,0 +1,63 @@
+table SLA_Targets
+	lineageTag: 17eaf2e1-cb1b-45a1-8371-9a1839f9a06b
+
+	column priority
+		dataType: string
+		lineageTag: 014363b1-0744-474c-9723-a2446ed8f64d
+		summarizeBy: none
+		sourceColumn: priority
+
+		annotation SummarizationSetBy = Automatic
+
+	column priority_label
+		dataType: string
+		lineageTag: f9eee353-48fc-4391-8d04-afc4c6ca49f2
+		summarizeBy: none
+		sourceColumn: priority_label
+		sortByColumn: priority_rank
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column priority_rank
+		dataType: int64
+		formatString: 0
+		lineageTag: e4cacdff-ba01-47f5-9c5f-6e1a6dbc64e2
+		summarizeBy: none
+		sourceColumn: priority_rank
+
+		annotation SummarizationSetBy = Automatic
+
+	column response_target_hours
+		dataType: int64
+		formatString: 0
+		lineageTag: 9e65ed0c-a228-496f-8d65-6426c127a6c9
+		summarizeBy: none
+		sourceColumn: response_target_hours
+
+		annotation SummarizationSetBy = Automatic
+
+	column resolution_target_hours
+		dataType: int64
+		formatString: 0
+		lineageTag: f2e4f935-67f4-4c6d-9b4a-8f3913c99bac
+		summarizeBy: none
+		sourceColumn: resolution_target_hours
+
+		annotation SummarizationSetBy = Automatic
+
+	partition SLA_Targets = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WMlTQVXAuyizJTE7MiSlR0lGCcYBMQyg2UYrViVYyAqr0yEzPAApAKSOwHJCGKDAGKvDNT0ktSixJBRsF4wCZxkBsAcTmRmClJkClPvnlQAEICTUFaJ2RgVJsLAA=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [priority = _t, priority_label = _t, priority_rank = _t, response_target_hours.1.1 = _t, resolution_target_hours.1.1 = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"priority", type text}, {"priority_label", type text}, {"priority_rank", Int64.Type}, {"response_target_hours.1.1", Int64.Type}, {"resolution_target_hours.1.1", Int64.Type}}),
+				    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"response_target_hours.1.1", "response_target_hours"}, {"resolution_target_hours.1.1", "resolution_target_hours"}})
+				in
+				    #"Renamed Columns"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

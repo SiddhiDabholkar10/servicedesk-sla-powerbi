@@ -1,0 +1,87 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 699.836574493101,
+            "y": 274.65440298362938
+          },
+          "nodeIndex": "Incidents",
+          "nodeLineageTag": "f4d9ffcd-d396-4c10-9c22-f9740eb48890",
+          "size": {
+            "height": 510.13426682030212,
+            "width": 173.39171911482129
+          },
+          "zIndex": 1
+        },
+        {
+          "location": {
+            "x": 113.0515824086801,
+            "y": 575.798993910907
+          },
+          "nodeIndex": "Resolvers",
+          "nodeLineageTag": "135e3df4-1ec8-414d-bdf8-ee6c7205ebe3",
+          "size": {
+            "height": 246.627556140291,
+            "width": 234
+          },
+          "zIndex": 2
+        },
+        {
+          "location": {
+            "x": 1238.6010911134429,
+            "y": 646.91200536169606
+          },
+          "nodeIndex": "SLA_Targets",
+          "nodeLineageTag": "17eaf2e1-cb1b-45a1-8371-9a1839f9a06b",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 3
+        },
+        {
+          "location": {
+            "x": 298.0825679756893,
+            "y": 0
+          },
+          "nodeIndex": "Date",
+          "nodeLineageTag": "f5094e9f-3477-411e-b643-6489c876c43a",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 4
+        },
+        {
+          "location": {
+            "x": 1500.884432393565,
+            "y": 335.45600268084803
+          },
+          "nodeIndex": "Group_Handoffs",
+          "nodeLineageTag": "a79d081c-2082-4bf1-a917-a46304dc46f9",
+          "size": {
+            "height": 176,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "All tables",
+      "zoomValue": 62.260061423516433,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "All tables",
+  "defaultDiagram": "All tables"
+}

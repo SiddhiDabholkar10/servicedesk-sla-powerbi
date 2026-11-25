@@ -1,0 +1,507 @@
+table Incidents
+	lineageTag: f4d9ffcd-d396-4c10-9c22-f9740eb48890
+
+	measure 'Total Tickets' = COUNTROWS ( Incidents )
+		formatString: 0
+		lineageTag: ae512b30-7004-45c5-a1e9-918c1c0ca234
+
+	measure 'SLA Met' =
+			
+			CALCULATE (
+			    COUNTROWS ( Incidents ),              // count tickets...
+			    Incidents[ResolutionSLAMet] = TRUE () // ...but only those where the flag is TRUE
+			)
+			// CALCULATE = "do this calculation, but with an extra filter applied"
+		formatString: 0
+		lineageTag: 0181ef2c-35bf-4678-958f-0dbd58683f41
+
+	measure 'Resolved Tickets' = COUNT ( Incidents[resolved_at] )
+		formatString: 0
+		lineageTag: 73d6fd11-5308-4dc8-9e9a-7f4ca0cc2442
+
+	measure 'SLA Attainment %' =
+			
+			DIVIDE ( [SLA Met], [Resolved Tickets] )  // DIVIDE is safe division: returns blank instead of an error if dividing by 0
+			// [Square brackets] with no table name = referencing another measure. Measures can build on each other.
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 86639c1f-2a23-4f10-a5e6-c4119dbd354d
+
+		changedProperty = IsHidden
+
+	measure 'Urgent Ticket %' =
+			
+			DIVIDE (
+			    CALCULATE (
+			        [Resolved Tickets],                 // reuse your existing measure...
+			        SLA_Targets[priority_rank] <= 2     // ...but only Critical (1) and High (2)
+			    ),                                      // the filter is on the dimension and flows to Incidents via the relationship
+			    [Resolved Tickets]                      // ÷ all of this resolver's resolved tickets
+			)
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: cf2b611c-db49-450c-9d96-fc6e92d7ae92
+
+	measure 'Avg Priority Rank' =
+			
+			AVERAGEX (
+			    FILTER ( Incidents, NOT ISBLANK ( Incidents[resolved_at] ) ),  // only resolved tickets, same set as the SLA %
+			    RELATED ( SLA_Targets[priority_rank] )                         // each ticket's rank: 1 = Critical … 4 = Low
+			)
+		formatString: 0.00
+		isHidden
+		lineageTag: 18c98ba4-f58d-4c04-995b-0f0a67b51021
+
+		changedProperty = IsHidden
+
+	measure 'Responded On Time' =
+			
+			CALCULATE (
+			    COUNTROWS ( Incidents ),
+			    FILTER (
+			        Incidents,
+			        NOT ISBLANK ( Incidents[RespondedDate] )
+			            && Incidents[RespondedDate] <= Incidents[RespondByDate]
+			    )
+			)
+		formatString: 0
+		lineageTag: 940be170-e923-42e8-bc77-3b6b53bbda3c
+
+	measure 'Responded Tickets' =
+			COUNT ( Incidents[RespondedDate] )
+			// COUNT skips blanks, so only tickets that got a response are counted (same idea as Resolved Tickets)
+		formatString: 0
+		lineageTag: 2da5e1d5-c5c9-4337-bb1d-b1b56aa7b363
+
+	measure 'Response SLA %' = DIVIDE ( [Responded On Time], [Responded Tickets] )
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 9f5c628f-8a62-49bf-8582-c9aa7924615c
+
+	measure 'Escalated Tickets' =
+			
+			CALCULATE (
+			    [Total Tickets],                    // count tickets...
+			    Incidents[reassignment_count] > 0   // ...that were handed off at least once
+			)
+		formatString: 0
+		lineageTag: bdc2610d-9ddd-43f2-abaf-994c9d07a0f9
+
+	measure 'Escalation Rate %' = DIVIDE ( [Escalated Tickets], [Total Tickets] )
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 078373f6-64fb-4011-8130-62994d4c22fd
+
+	measure 'Avg Reassignments' = AVERAGE ( Incidents[reassignment_count] )
+		formatString: 0.00
+		lineageTag: 9f64002d-4a1b-491c-a364-6ed0658ada54
+
+	column number
+		dataType: string
+		lineageTag: b1274486-8b8b-4be8-ac6f-c040744fd32d
+		summarizeBy: none
+		sourceColumn: number
+
+		annotation SummarizationSetBy = Automatic
+
+	column incident_state
+		dataType: string
+		lineageTag: e4b4d5fe-bf81-4451-8110-a4a438e7aebf
+		summarizeBy: none
+		sourceColumn: incident_state
+
+		annotation SummarizationSetBy = Automatic
+
+	column active
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: c5135aaa-d237-4c07-8246-5201111676dc
+		summarizeBy: none
+		sourceColumn: active
+
+		annotation SummarizationSetBy = Automatic
+
+	column reassignment_count
+		dataType: int64
+		formatString: 0
+		lineageTag: b815d702-1707-4d01-a76c-40b2e9540049
+		summarizeBy: sum
+		sourceColumn: reassignment_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column reopen_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 526f6dad-359d-485d-af84-a57f34d03dd8
+		summarizeBy: sum
+		sourceColumn: reopen_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column sys_mod_count
+		dataType: int64
+		formatString: 0
+		lineageTag: 1e3afdc1-f774-4190-a363-a5ffc65633db
+		summarizeBy: sum
+		sourceColumn: sys_mod_count
+
+		annotation SummarizationSetBy = Automatic
+
+	column made_sla
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: b7368ede-2f4b-4fec-affe-c75155500175
+		summarizeBy: none
+		sourceColumn: made_sla
+
+		annotation SummarizationSetBy = Automatic
+
+	column caller_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 1949de5e-4818-4af8-a1a9-4518b1740bc4
+		summarizeBy: none
+		sourceColumn: caller_id
+
+		annotation SummarizationSetBy = User
+
+	column opened_by
+		dataType: int64
+		formatString: 0
+		lineageTag: f224e8a3-de99-4470-b9c7-0ae5dc655707
+		summarizeBy: none
+		sourceColumn: opened_by
+
+		annotation SummarizationSetBy = User
+
+	column opened_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 9efbff30-6341-4cfb-849f-8aed7493d9e1
+		summarizeBy: none
+		sourceColumn: opened_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column sys_created_by
+		dataType: int64
+		formatString: 0
+		lineageTag: 839914e9-34be-4274-a89d-f00b12238825
+		summarizeBy: none
+		sourceColumn: sys_created_by
+
+		annotation SummarizationSetBy = User
+
+	column sys_created_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: aeb7def7-05b7-4031-abf0-caec1ba5625f
+		summarizeBy: none
+		sourceColumn: sys_created_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column sys_updated_by
+		dataType: int64
+		formatString: 0
+		lineageTag: 0deb565a-12ca-4884-b570-0b10010ca8ff
+		summarizeBy: none
+		sourceColumn: sys_updated_by
+
+		annotation SummarizationSetBy = User
+
+	column sys_updated_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 04c182a0-ba15-4f04-9eda-8f45310ee9b7
+		summarizeBy: none
+		sourceColumn: sys_updated_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column contact_type
+		dataType: string
+		lineageTag: e15b3b2f-9a5f-48b7-9d97-54ae6da1ccd7
+		summarizeBy: none
+		sourceColumn: contact_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column location
+		dataType: int64
+		formatString: 0
+		lineageTag: ae4660f1-48e6-4acb-9630-f796aec80a7d
+		summarizeBy: none
+		sourceColumn: location
+
+		annotation SummarizationSetBy = User
+
+	column category
+		dataType: int64
+		formatString: 0
+		lineageTag: 18133a9d-d504-4158-bc89-f82560b7eb58
+		summarizeBy: none
+		sourceColumn: category
+
+		annotation SummarizationSetBy = User
+
+	column subcategory
+		dataType: int64
+		formatString: 0
+		lineageTag: adbad5a7-d7bc-4f53-bf7c-ff9d63986e6c
+		summarizeBy: none
+		sourceColumn: subcategory
+
+		annotation SummarizationSetBy = User
+
+	column u_symptom
+		dataType: int64
+		formatString: 0
+		lineageTag: 3bc2f520-b816-42e6-b362-a197dac85a14
+		summarizeBy: none
+		sourceColumn: u_symptom
+
+		annotation SummarizationSetBy = User
+
+	column cmdb_ci
+		dataType: string
+		lineageTag: da4037fa-24cc-43e9-99ec-ff3d3882ad01
+		summarizeBy: none
+		sourceColumn: cmdb_ci
+
+		annotation SummarizationSetBy = Automatic
+
+	column impact
+		dataType: string
+		lineageTag: 42e56ee6-9de5-4645-9163-cbfc49b866f5
+		summarizeBy: none
+		sourceColumn: impact
+
+		annotation SummarizationSetBy = Automatic
+
+	column urgency
+		dataType: string
+		lineageTag: 06a3124f-dd1c-4dfb-98c3-93050acbca1a
+		summarizeBy: none
+		sourceColumn: urgency
+
+		annotation SummarizationSetBy = Automatic
+
+	column priority
+		dataType: string
+		lineageTag: beff4c80-f850-4abf-b6a4-0b37bafab23f
+		summarizeBy: none
+		sourceColumn: priority
+
+		annotation SummarizationSetBy = Automatic
+
+	column assignment_group
+		dataType: string
+		lineageTag: 740e6eec-d996-45c9-a593-395f332f79ac
+		summarizeBy: none
+		sourceColumn: assignment_group
+
+		annotation SummarizationSetBy = Automatic
+
+	column assigned_to
+		dataType: int64
+		formatString: 0
+		lineageTag: 0a398517-51db-4f5d-9834-a7f735733401
+		summarizeBy: none
+		sourceColumn: assigned_to
+
+		annotation SummarizationSetBy = User
+
+	column knowledge
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 84fb3488-85e8-4c55-ad69-cbf9d1d4d2c4
+		summarizeBy: none
+		sourceColumn: knowledge
+
+		annotation SummarizationSetBy = Automatic
+
+	column u_priority_confirmation
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 27076d6e-d0e7-4314-9a20-26367b3c6e15
+		summarizeBy: none
+		sourceColumn: u_priority_confirmation
+
+		annotation SummarizationSetBy = Automatic
+
+	column notify
+		dataType: string
+		lineageTag: b1efdc37-048a-4171-9883-a7b2ec5cd696
+		summarizeBy: none
+		sourceColumn: notify
+
+		annotation SummarizationSetBy = Automatic
+
+	column problem_id
+		dataType: string
+		lineageTag: 58356bbe-a649-439c-b887-ce378688d7b1
+		summarizeBy: none
+		sourceColumn: problem_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column rfc
+		dataType: string
+		lineageTag: 9adcc60d-a09f-4974-9630-7a19fad4599d
+		summarizeBy: none
+		sourceColumn: rfc
+
+		annotation SummarizationSetBy = Automatic
+
+	column vendor
+		dataType: string
+		lineageTag: 7554107a-4fbe-4b74-b0fd-072662b8042b
+		summarizeBy: none
+		sourceColumn: vendor
+
+		annotation SummarizationSetBy = Automatic
+
+	column caused_by
+		dataType: string
+		lineageTag: a5d7fbaf-b49d-45fc-8977-b64be26b66b2
+		summarizeBy: none
+		sourceColumn: caused_by
+
+		annotation SummarizationSetBy = Automatic
+
+	column closed_code
+		dataType: string
+		lineageTag: 1e5607db-0f6e-4f42-b81c-03ef4f06d854
+		summarizeBy: none
+		sourceColumn: closed_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column resolver_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 47924fa4-7ad1-4779-bc50-9b1859e73694
+		summarizeBy: none
+		sourceColumn: resolver_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column resolved_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: e37a1d0e-6349-4e8b-96a3-60f37f3e4d07
+		summarizeBy: none
+		sourceColumn: resolved_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column closed_at
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 58253b89-f3fa-453e-9519-3b6c1ac32a17
+		summarizeBy: none
+		sourceColumn: closed_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column ResolveByDate = Incidents[opened_at]  + RELATED ( SLA_Targets[resolution_target_hours] ) / 24
+		formatString: General Date
+		lineageTag: 9bebadc0-c6d0-4729-a9bf-a34f76dad1a0
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column RespondByDate = ```
+			
+			Incidents[opened_at]
+			    + RELATED ( SLA_Targets[response_target_hours] ) / 24 
+			```
+		formatString: General Date
+		lineageTag: 69afc423-811b-4627-9772-d30178478406
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column ResolutionSLAMet =
+			
+			VAR ResolvedTime = Incidents[resolved_at]        // VAR = store a value under a name to reuse below
+			RETURN                                           // RETURN = the value this column actually gets
+			    IF (
+			        ISBLANK ( ResolvedTime ),                // no resolution date recorded?
+			        BLANK (),                                // then leave it blank: unknown, not a breach
+			        ResolvedTime <= Incidents[ResolveByDate] // otherwise TRUE if on time, FALSE if late
+			    )
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: aa13ced0-99bd-472b-ade2-83f17b1a9269
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Opened Date' =
+			
+			DATE (                              // DATE(year, month, day) builds a date with no time part
+			    YEAR ( Incidents[opened_at] ),
+			    MONTH ( Incidents[opened_at] ),
+			    DAY ( Incidents[opened_at] )
+			)
+		formatString: Long Date
+		lineageTag: b1526c91-9b51-44bf-9d2e-b2ebf2546c34
+		summarizeBy: none
+
+		changedProperty = DataType
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column RespondedDate
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 52f1fecd-783f-4146-8ac9-bc68e6e93da8
+		summarizeBy: none
+		sourceColumn: RespondedDate
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Handoff Bucket' =
+			
+			SWITCH (
+			    TRUE (),                                   // pick the first condition that's true
+			    Incidents[reassignment_count] = 0, "0",
+			    Incidents[reassignment_count] = 1, "1",
+			    Incidents[reassignment_count] = 2, "2",
+			    "3+"                                       // anything else
+			)
+		lineageTag: 8a9142fc-1680-44d2-8361-c50cc30c244f
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Incidents = m
+		mode: import
+		source =
+				let
+				    Source = Raw_Events,
+				    #"Grouped Rows" = Table.Group(Source, {"number"}, {{"LatestRow", each Table.Max(_, "sys_mod_count"), type record}}),
+				    #"Expanded LatestRow" = Table.ExpandRecordColumn(#"Grouped Rows", "LatestRow", {"incident_state", "active", "reassignment_count", "reopen_count", "sys_mod_count", "made_sla", "caller_id", "opened_by", "opened_at", "sys_created_by", "sys_created_at", "sys_updated_by", "sys_updated_at", "contact_type", "location", "category", "subcategory", "u_symptom", "cmdb_ci", "impact", "urgency", "priority", "assignment_group", "assigned_to", "knowledge", "u_priority_confirmation", "notify", "problem_id", "rfc", "vendor", "caused_by", "closed_code", "resolved_by", "resolved_at", "closed_at"}),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Expanded LatestRow",{{"number", type text}, {"incident_state", type text}, {"active", type logical}, {"reassignment_count", Int64.Type}, {"reopen_count", Int64.Type}, {"sys_mod_count", Int64.Type}, {"made_sla", type logical}, {"caller_id", type text}, {"opened_by", type text}, {"opened_at", type datetime}, {"sys_created_by", type text}, {"sys_created_at", type datetime}, {"sys_updated_by", type text}, {"sys_updated_at", type datetime}, {"contact_type", type text}, {"location", type text}, {"category", type text}, {"subcategory", type text}, {"u_symptom", type text}, {"cmdb_ci", type any}, {"impact", type text}, {"urgency", type text}, {"priority", type text}, {"assignment_group", type text}, {"assigned_to", type text}, {"knowledge", type logical}, {"u_priority_confirmation", type logical}, {"notify", type text}, {"problem_id", type text}, {"rfc", type text}, {"vendor", type any}, {"caused_by", type any}, {"closed_code", type text}, {"resolved_by", type text}, {"resolved_at", type datetime}, {"closed_at", type datetime}}),
+				    #"Extracted Text After Delimiter" = Table.TransformColumns(#"Changed Type", {{"opened_by", each Text.AfterDelimiter(_, "by"), type text}, {"sys_created_by", each Text.AfterDelimiter(_, "by"), type text}, {"sys_updated_by", each Text.AfterDelimiter(_, "by"), type text}, {"resolved_by", each Text.AfterDelimiter(_, "by"), type text}}),
+				    #"Extracted Text After Delimiter1" = Table.TransformColumns(#"Extracted Text After Delimiter", {{"caller_id", each Text.AfterDelimiter(_, "Caller"), type text}}),
+				    #"Extracted Text After Delimiter2" = Table.TransformColumns(#"Extracted Text After Delimiter1", {{"location", each Text.AfterDelimiter(_, "Location"), type text}}),
+				    #"Extracted Text After Delimiter3" = Table.TransformColumns(#"Extracted Text After Delimiter2", {{"category", each Text.AfterDelimiter(_, "Category"), type text}}),
+				    #"Extracted Text After Delimiter4" = Table.TransformColumns(#"Extracted Text After Delimiter3", {{"subcategory", each Text.AfterDelimiter(_, "Subcategory"), type text}}),
+				    #"Extracted Text After Delimiter5" = Table.TransformColumns(#"Extracted Text After Delimiter4", {{"u_symptom", each Text.AfterDelimiter(_, "Symptom"), type text}}),
+				    IdColumns = {"caller_id", "opened_by", "sys_created_by", "sys_updated_by", "location", "category", "subcategory", "u_symptom", "resolved_by"},
+				    #"Trimmed IDs" = Table.TransformColumns(#"Extracted Text After Delimiter5", List.Transform(IdColumns, each {_, Text.Trim, type text})),
+				    #"IDs to Number" = Table.TransformColumnTypes(#"Trimmed IDs", List.Transform(IdColumns, each {_, Int64.Type})),
+				    #"Renamed Resolver" = Table.RenameColumns(#"IDs to Number", {{"resolved_by", "resolver_id"}}),
+				    #"Extracted Text After Delimiter6" = Table.TransformColumns(#"Renamed Resolver", {{"assigned_to", each Text.AfterDelimiter(_, "Resolver"), type text}}),
+				    #"Trimmed Text" = Table.TransformColumns(#"Extracted Text After Delimiter6", {{"assigned_to", Text.Trim, type text}}),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Trimmed Text", {{"assigned_to", Int64.Type}}),
+				    #"Merged Queries" = Table.NestedJoin(#"Changed Type1", {"number"}, First_Response, {"number"}, "First_Response", JoinKind.LeftOuter),
+				    #"Expanded First_Response" = Table.ExpandTableColumn(#"Merged Queries", "First_Response", {"RespondedDate"}, {"RespondedDate"})
+				in
+				    #"Expanded First_Response"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

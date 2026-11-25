@@ -1,0 +1,79 @@
+table Group_Handoffs
+	lineageTag: a79d081c-2082-4bf1-a917-a46304dc46f9
+
+	measure Handoffs = COUNTROWS ( Group_Handoffs )
+		formatString: 0
+		lineageTag: 34f13177-064d-4978-b4e6-dd5fea1b992e
+
+	column number
+		dataType: string
+		lineageTag: d878f706-1fa8-4172-a128-74f8a33cd873
+		summarizeBy: none
+		sourceColumn: number
+
+		annotation SummarizationSetBy = Automatic
+
+	column to_group
+		dataType: string
+		lineageTag: 816d48ba-06f2-4e58-86da-c068ee5ea22c
+		summarizeBy: none
+		sourceColumn: to_group
+
+		annotation SummarizationSetBy = Automatic
+
+	column handoff_time
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b41db060-b6e9-409a-b596-88c02aed4192
+		summarizeBy: none
+		sourceColumn: handoff_time
+
+		annotation SummarizationSetBy = Automatic
+
+	column from_group
+		dataType: string
+		lineageTag: 8d9738fa-2d79-43dc-bdc4-5d543ffc08b8
+		summarizeBy: none
+		sourceColumn: from_group
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Group_Handoffs = m
+		mode: import
+		source =
+				let
+				    Source = Raw_Events,
+				
+				    // Keep only the 4 columns we need, which is faster than carrying all 36
+				    Kept = Table.SelectColumns(Source, {"number", "sys_mod_count", "assignment_group", "sys_updated_at"}),
+				
+				    // Ignore updates with no group recorded, so a gap doesn't count as a handoff
+				    NoBlankGroup = Table.SelectRows(Kept, each [assignment_group] <> null),
+				
+				    // For each ticket: sort its updates and attach the PREVIOUS row's group (= SQL LAG)
+				    PerTicket = Table.Group(NoBlankGroup, {"number"}, {{"Events", each
+				        let
+				            Sorted   = Table.Sort(_, {{"sys_mod_count", Order.Ascending}}),   // updates in time order
+				            Groups   = Sorted[assignment_group],                              // e.g. {"Group 70","Group 70","Group 39"}
+				            Previous = {null} & List.RemoveLastN(Groups, 1)                   // shifted down one: {null,"Group 70","Group 70"}
+				        in
+				            // glue the shifted list back on as a new column called from_group
+				            Table.FromColumns(Table.ToColumns(Sorted) & {Previous}, Table.ColumnNames(Sorted) & {"from_group"}),
+				        type table}}),
+				
+				    // Unpack each ticket's table back into rows
+				    Expanded = Table.ExpandTableColumn(PerTicket, "Events", {"assignment_group", "sys_updated_at", "from_group"}),
+				
+				    // A handoff = the group changed from the previous update
+				    Handoffs = Table.SelectRows(Expanded, each [from_group] <> null and [from_group] <> [assignment_group]),
+				
+				    // Clear names and types
+				    Renamed = Table.RenameColumns(Handoffs, {{"assignment_group", "to_group"}, {"sys_updated_at", "handoff_time"}}),
+				    Typed = Table.TransformColumnTypes(Renamed, {{"number", type text}, {"from_group", type text}, {"to_group", type text}, {"handoff_time", type datetime}})
+				in
+				    Typed
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+
